@@ -75,7 +75,7 @@ sealed class MediaPreview : IPreview
         _root.Children.Add(bar);
 
         Tools = video
-            ? [Tool.Button("", "ملء الشاشة (F11)", () => (Window.GetWindow(_root) as PreviewWindow)?.ToggleFullscreen())]
+            ? [Tool.Button("", "ملء الشاشة (.)", () => (Window.GetWindow(_root) as PreviewWindow)?.ToggleFullscreen())]
             : [];
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };

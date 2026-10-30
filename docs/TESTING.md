@@ -101,7 +101,7 @@ Ctrl+wheel zoom, and double-click to open the original.
 ## Keyboard shortcuts and click-away closing
 
 Most single-key shortcuts are tested through the real window with synthetic key events. Not exercised: `F` (open folder),
-`F3`, `J`/`L` (seek), `Shift+R`, `F11`, Ctrl+P and Ctrl+wheel.
+`F3`, `J`/`L` (seek), `Shift+R`, Ctrl+P and Ctrl+wheel.
 
 ## Known limitations
 

@@ -227,7 +227,7 @@ public partial class PreviewWindow : Window
             case Key.F when ctrl: _preview?.FocusSearch(); break;
             case Key.F: OpenFolder(); break;
             case Key.F1: ToggleHelp(); break;
-            case Key.F11: ToggleFullscreen(); break;
+            case Key.OemPeriod or Key.Decimal: ToggleFullscreen(); break;
             default:
                 if (_preview?.OnKey(e.Key, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) != true) return;
                 break;
