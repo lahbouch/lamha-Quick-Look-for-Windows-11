@@ -27,9 +27,6 @@ public partial class PreviewWindow : Window
     CancellationTokenSource? _load;
     nint _owner;
     bool _reallyClosing, _fullscreen;
-    long _shownAt;
-    bool _hadFocus;
-    readonly DispatcherTimer _focusWatch = new() { Interval = TimeSpan.FromMilliseconds(150) };
 
     public PreviewWindow(PreviewRegistry registry, AppSettings settings, Action<string> notify)
     {
@@ -37,7 +34,6 @@ public partial class PreviewWindow : Window
         _settings = settings;
         _notify = notify;
         InitializeComponent();
-        _focusWatch.Tick += (_, _) => WatchFocus();
         var hwnd = new WindowInteropHelper(this).EnsureHandle();
         int round = 2; // DWMWCP_ROUND: the standard Windows 11 corners and shadow, without a transparent window
         DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));
@@ -54,34 +50,8 @@ public partial class PreviewWindow : Window
         Show();
         Activate();
         TakeForeground();
-        _shownAt = Environment.TickCount64;
-        _hadFocus = false;
-        _focusWatch.Start();
         Load();
     }
-
-    /// <summary>
-    /// Closes when the user clicks another program, such as a document in Explorer. This is polled because the
-    /// Deactivated event fires before Windows has settled on the new foreground window, so one check there can miss it.
-    /// </summary>
-    void WatchFocus()
-    {
-        nint fg = GetForegroundWindow();
-        if (fg == 0) return;
-        GetWindowThreadProcessId(fg, out uint pid);
-        bool own = pid == Environment.ProcessId;
-        _hadFocus |= own; // if the window never got focus, leaving it open beats closing it by surprise
-        if (_hadFocus && ShouldCloseOnBlur(own, Environment.TickCount64 - _shownAt, _settings.AutoPreview))
-        {
-            Log.Info("preview closing: focus left");
-            HidePreview(restoreFocus: false);
-        }
-    }
-
-    // Our own dialogs (printing, settings) must not close the document they belong to, and taking focus from
-    // Explorer can bounce for a moment on opening. With automatic preview the window stays open to follow Explorer.
-    internal static bool ShouldCloseOnBlur(bool ownWindow, long msSinceShown, bool autoPreview) =>
-        !ownWindow && !autoPreview && msSinceShown > 600;
 
     /// <summary>A background process may not take the foreground, except by joining the input queue of the current foreground thread.</summary>
     void TakeForeground()
@@ -312,7 +282,6 @@ public partial class PreviewWindow : Window
     public void HidePreview(bool restoreFocus = true)
     {
         if (!IsVisible) return;
-        _focusWatch.Stop();
         if (_fullscreen) ToggleFullscreen();
         _load?.Cancel();
         if (_settings.RememberSize)

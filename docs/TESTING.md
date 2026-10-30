@@ -15,7 +15,7 @@ with real key presses. Sample documents were generated for the tests; no persona
 | Space opens the preview, preview takes keyboard focus | Pass |
 | Space closes, focus returns to Explorer | Pass |
 | Escape closes | Pass |
-| Clicking Explorer closes the preview | Pass, with "update preview automatically" off |
+| Clicking Explorer closes the preview | Pass on the earlier focus-based version. The current click-based version has not been run on the desktop |
 | Arrows move through 3 files and stop at the end | Pass |
 | Arabic filename | Pass |
 | Space left alone while renaming, in the address bar, in the search box | Pass |
@@ -109,7 +109,7 @@ Most single-key shortcuts are tested through the real window with synthetic key 
 - Space works in Explorer windows and on the desktop, not in the Open and Save dialogs of other programs.
 - Space stays with Explorer for one second after a letter key, so type-to-find works. Previewing right after typing needs that pause.
 - Explorer running as administrator cannot be previewed from the normal-rights app.
-- Clicking outside closes the preview only while "update preview automatically" is off, which is the default for new installs. A settings file saved earlier keeps its old value.
+- A left or right click on Explorer or the desktop closes the preview. Alt+Tab, the taskbar and clicks in other programs leave it open by design. "Update preview automatically" turns the closing off; it is off by default for new installs, and a settings file saved earlier keeps its old value.
 - If Explorer's selection cannot be matched to the active tab, the preview only opens when the choice is unambiguous.
 
 **Documents**

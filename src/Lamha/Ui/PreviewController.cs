@@ -28,9 +28,22 @@ public sealed class PreviewController : IDisposable
         _hook.CaptureTarget = () => Settings.ExplorerIntegration ? ExplorerProbe.CaptureTarget() : 0;
         _hook.SpacePressed += target => _window.Dispatcher.BeginInvoke(() => OnSpace(target));
 
+        _hook.MouseClicked += p => _window.Dispatcher.BeginInvoke(() => OnMouseClick(p));
+        _window.IsVisibleChanged += (_, e) => _hook.WatchMouse((bool)e.NewValue);
+
         _follow = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
         _follow.Tick += async (_, _) => await FollowSelection();
     }
+
+    void OnMouseClick(Native.POINT p)
+    {
+        var root = Native.GetAncestor(Native.WindowFromPoint(p), Native.GA_ROOT);
+        if (ShouldCloseOnClick(Native.ClassOf(root), Settings.AutoPreview)) _window.HidePreview(restoreFocus: false);
+    }
+
+    /// <summary>Only Explorer and the desktop count: the taskbar and other programs must leave the preview open.</summary>
+    internal static bool ShouldCloseOnClick(string rootClass, bool autoPreview) =>
+        !autoPreview && ExplorerProbe.IsShellRoot(rootClass);
 
     public void Notify(string message) => _toast.Show(message);
 

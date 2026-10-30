@@ -442,12 +442,21 @@ public class SvgSanitizerTests : IDisposable
         Assert.ThrowsAny<System.Xml.XmlException>(() => Clean("""<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///c:/windows/win.ini">]><svg xmlns="http://www.w3.org/2000/svg"><text>&x;</text></svg>"""));
 }
 
-public class CloseOnBlurTests
+public class CloseOnClickTests
 {
-    [Fact] public void Clicking_another_program_closes() => Assert.True(PreviewWindow.ShouldCloseOnBlur(false, 5000, false));
-    [Fact] public void Our_own_dialog_does_not_close() => Assert.False(PreviewWindow.ShouldCloseOnBlur(true, 5000, false));
-    [Fact] public void A_focus_bounce_on_opening_does_not_close() => Assert.False(PreviewWindow.ShouldCloseOnBlur(false, 100, false));
-    [Fact] public void Automatic_preview_stays_open() => Assert.False(PreviewWindow.ShouldCloseOnBlur(false, 5000, true));
+    [Theory]
+    [InlineData("CabinetWClass", true)]              // a file in Explorer
+    [InlineData("Progman", true)]                    // the desktop
+    [InlineData("WorkerW", true)]
+    [InlineData("Shell_TrayWnd", false)]             // the taskbar
+    [InlineData("Shell_SecondaryTrayWnd", false)]
+    [InlineData("#32770", false)]                    // the Run dialog
+    [InlineData("HwndWrapper[Lamha;;abc]", false)]   // the preview itself
+    [InlineData("Notepad", false)]
+    public void Only_explorer_and_the_desktop_close(string cls, bool expected) =>
+        Assert.Equal(expected, PreviewController.ShouldCloseOnClick(cls, false));
+
+    [Fact] public void Automatic_preview_stays_open() => Assert.False(PreviewController.ShouldCloseOnClick("CabinetWClass", true));
 }
 
 public class WindowFitTests
