@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Lamha/Lamha.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Lamha.Harness/Lamha.Harness.csproj" />
+    <Project Path="tests/Lamha.Tests/Lamha.Tests.csproj" />
+  </Folder>
+</Solution>
