@@ -28,6 +28,8 @@ public partial class PreviewWindow : Window
     nint _owner;
     bool _reallyClosing, _fullscreen;
     long _shownAt;
+    bool _hadFocus;
+    readonly DispatcherTimer _focusWatch = new() { Interval = TimeSpan.FromMilliseconds(150) };
 
     public PreviewWindow(PreviewRegistry registry, AppSettings settings, Action<string> notify)
     {
@@ -35,6 +37,7 @@ public partial class PreviewWindow : Window
         _settings = settings;
         _notify = notify;
         InitializeComponent();
+        _focusWatch.Tick += (_, _) => WatchFocus();
         var hwnd = new WindowInteropHelper(this).EnsureHandle();
         int round = 2; // DWMWCP_ROUND: the standard Windows 11 corners and shadow, without a transparent window
         DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));
@@ -52,22 +55,27 @@ public partial class PreviewWindow : Window
         Activate();
         TakeForeground();
         _shownAt = Environment.TickCount64;
+        _hadFocus = false;
+        _focusWatch.Start();
         Load();
     }
 
-    /// <summary>Closes when the user clicks another program, such as a document in Explorer.</summary>
-    protected override void OnDeactivated(EventArgs e)
+    /// <summary>
+    /// Closes when the user clicks another program, such as a document in Explorer. This is polled because the
+    /// Deactivated event fires before Windows has settled on the new foreground window, so one check there can miss it.
+    /// </summary>
+    void WatchFocus()
     {
-        base.OnDeactivated(e);
-        // Checked once idle: the new foreground window is not known yet while this event runs.
-        Dispatcher.BeginInvoke(() =>
+        nint fg = GetForegroundWindow();
+        if (fg == 0) return;
+        GetWindowThreadProcessId(fg, out uint pid);
+        bool own = pid == Environment.ProcessId;
+        _hadFocus |= own; // if the window never got focus, leaving it open beats closing it by surprise
+        if (_hadFocus && ShouldCloseOnBlur(own, Environment.TickCount64 - _shownAt, _settings.AutoPreview))
         {
-            nint fg = GetForegroundWindow();
-            GetWindowThreadProcessId(fg, out uint pid);
-            if (IsVisible && !IsActive && fg != 0
-                && ShouldCloseOnBlur(pid == Environment.ProcessId, Environment.TickCount64 - _shownAt, _settings.AutoPreview))
-                HidePreview(restoreFocus: false);
-        }, DispatcherPriority.ApplicationIdle);
+            Log.Info("preview closing: focus left");
+            HidePreview(restoreFocus: false);
+        }
     }
 
     // Our own dialogs (printing, settings) must not close the document they belong to, and taking focus from
@@ -304,6 +312,7 @@ public partial class PreviewWindow : Window
     public void HidePreview(bool restoreFocus = true)
     {
         if (!IsVisible) return;
+        _focusWatch.Stop();
         if (_fullscreen) ToggleFullscreen();
         _load?.Cancel();
         if (_settings.RememberSize)
