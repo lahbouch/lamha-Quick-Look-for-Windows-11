@@ -116,6 +116,7 @@ public sealed class PdfPreview : IPreview
         tools.Add(Tool.Button("", "ملاءمة العرض (2)", () => _surface.SetFit(FitMode.Width)));
         tools.Add(Tool.Button("", "ملاءمة الصفحة (0)", () => _surface.SetFit(FitMode.Page)));
         tools.Add(Tool.Button("", "الحجم الفعلي (1)", () => _surface.SetFit(FitMode.Actual)));
+        tools.Add(Tool.Button("\uE7AD", "تدوير (R)", () => Rotate(1)));
         tools.Add(Tool.Separator());
 
         _search = new TextBox { Width = 130, Style = (Style)Application.Current.FindResource("SearchBox"), ToolTip = "بحث في المستند (Ctrl+F)" };
@@ -250,6 +251,13 @@ public sealed class PdfPreview : IPreview
         _surface.SetHits([]);
     }
 
+    void Rotate(int quarters)
+    {
+        ClearSearch(); // highlights are positions on the page as it was
+        _surface.Rotate(quarters);
+        _thumbs.Items.Refresh();
+    }
+
     void Move(int delta)
     {
         if (_tabs is { } t) t.SelectedIndex = Math.Clamp(t.SelectedIndex + delta, 0, t.Items.Count - 1);
@@ -269,6 +277,7 @@ public sealed class PdfPreview : IPreview
             case Key.PageDown: Move(+1); break;
             case Key.Home when _tabs is null: _surface.ScrollToPage(0); break;
             case Key.End when _tabs is null: _surface.ScrollToPage(_doc.PageCount - 1); break;
+            case Key.R: Rotate(shift ? 3 : 1); break;
             case Key.T when _tabs is null && _doc.PageCount > 1: ToggleThumbnails(); break;
             case Key.F3: Jump(shift ? -1 : +1); break;
             case Key.P when _options.Print: Print(); break;

@@ -28,6 +28,7 @@ public sealed unsafe class PdfDoc : IDisposable
     int _cachedIndex = -1;
     nint _renderPage;
     int _renderIndex = -1;
+    int _rotation;
 
     public Size[] Sizes { get; }
     public int PageCount => Sizes.Length;
@@ -56,6 +57,17 @@ public sealed unsafe class PdfDoc : IDisposable
                 FPDF_GetPageSizeByIndex(_doc, i, out double w, out double h);
                 Sizes[i] = new Size(Math.Max(w, 1), Math.Max(h, 1));
             }
+        }
+    }
+
+    /// <summary>Turns every page clockwise by quarter turns. <see cref="Sizes"/> then describes the page as displayed.</summary>
+    public void Rotate(int quarters)
+    {
+        lock (Gate)
+        {
+            _rotation = (_rotation + quarters) % 4;
+            if (quarters % 2 != 0)
+                for (int i = 0; i < Sizes.Length; i++) Sizes[i] = new Size(Sizes[i].Height, Sizes[i].Width);
         }
     }
 
@@ -98,7 +110,7 @@ public sealed unsafe class PdfDoc : IDisposable
             {
                 nint bmp = FPDFBitmap_CreateEx(px.Width, px.Height, BitmapBGRA, b, stride);
                 FPDFBitmap_FillRect(bmp, 0, 0, px.Width, px.Height, 0xFFFFFFFF);
-                FPDF_RenderPageBitmap(bmp, p, -px.X, -px.Y, fullW, fullH, 0, FPDF_ANNOT);
+                FPDF_RenderPageBitmap(bmp, p, -px.X, -px.Y, fullW, fullH, _rotation, FPDF_ANNOT);
                 FPDFBitmap_Destroy(bmp);
             }
         }
@@ -149,7 +161,7 @@ public sealed unsafe class PdfDoc : IDisposable
             var (p, t) = TextPage(page);
             if (t == 0) return -1;
             var s = Sizes[page];
-            FPDF_DeviceToPage(p, 0, 0, (int)(s.Width * 100), (int)(s.Height * 100), 0, (int)(pt.X * 100), (int)(pt.Y * 100), out double x, out double y);
+            FPDF_DeviceToPage(p, 0, 0, (int)(s.Width * 100), (int)(s.Height * 100), _rotation, (int)(pt.X * 100), (int)(pt.Y * 100), out double x, out double y);
             return FPDFText_GetCharIndexAtPos(t, x, y, 12, 12);
         }
     }
@@ -169,8 +181,8 @@ public sealed unsafe class PdfDoc : IDisposable
             for (int i = 0; i < n; i++)
             {
                 FPDFText_GetRect(t, i, out double l, out double top, out double r, out double b);
-                FPDF_PageToDevice(p, 0, 0, w, h, 0, l, top, out int x1, out int y1);
-                FPDF_PageToDevice(p, 0, 0, w, h, 0, r, b, out int x2, out int y2);
+                FPDF_PageToDevice(p, 0, 0, w, h, _rotation, l, top, out int x1, out int y1);
+                FPDF_PageToDevice(p, 0, 0, w, h, _rotation, r, b, out int x2, out int y2);
                 rects.Add(new Rect(new Point(x1 / 100.0, y1 / 100.0), new Point(x2 / 100.0, y2 / 100.0)));
             }
         }

@@ -417,6 +417,23 @@ public class PdfUserUnitTests
     [Fact] public void No_page_objects_changes_nothing() => Assert.Equal([1.0], PdfUserUnits.Parse("garbage", 1));
 }
 
+public class PdfRotationTests
+{
+    [Fact]
+    public void Quarter_turns_swap_the_page_size_and_four_restore_it()
+    {
+        var file = Path.Combine(Directory.CreateTempSubdirectory("lamha-test").FullName, "x.pdf");
+        File.WriteAllText(file, "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
+            "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 100]>>endobj\ntrailer<</Root 1 0 R>>\n");
+        using var doc = PdfDoc.Open(file);
+        Assert.Equal(new Size(200, 100), doc.Sizes[0]);
+        doc.Rotate(1);
+        Assert.Equal(new Size(100, 200), doc.Sizes[0]);
+        doc.Rotate(3);
+        Assert.Equal(new Size(200, 100), doc.Sizes[0]);
+    }
+}
+
 public class SvgSanitizerTests : IDisposable
 {
     readonly string _file = Path.Combine(Directory.CreateTempSubdirectory("lamha-test").FullName, "x.svg");

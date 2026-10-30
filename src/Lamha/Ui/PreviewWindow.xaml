@@ -99,7 +99,7 @@
                         <Run Text="F11: ملء الشاشة" /><LineBreak />
                         <Run Text="+ أو -: تكبير أو تصغير" /><LineBreak />
                         <Run Text="0: ملاءمة النافذة، 1: الحجم الفعلي، 2: ملاءمة العرض" /><LineBreak />
-                        <Run Text="R: تدوير الصورة، Shift+R: تدوير عكسي" /><LineBreak />
+                        <Run Text="R: تدوير، Shift+R: تدوير عكسي" /><LineBreak />
                         <Run Text="Page Up أو Page Down: الصفحة أو الورقة السابقة أو التالية" /><LineBreak />
                         <Run Text="Home أو End: أول صفحة أو آخر صفحة" /><LineBreak />
                         <Run Text="Ctrl+F: بحث، F3: النتيجة التالية" /><LineBreak />

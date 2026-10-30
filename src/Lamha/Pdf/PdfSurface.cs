@@ -234,6 +234,22 @@ public sealed class PdfSurface : FrameworkElement
         if (slot >= 0 && slot < _pages.Length) ScrollToPage(_pages[slot]);
     }
 
+    public void Rotate(int quarters)
+    {
+        _cts?.Cancel();
+        _tiles.Clear();
+        ClearSelection();
+        _doc.Rotate(quarters);
+        int page = CurrentPage;
+        Layout();
+        ApplyFit();
+        _host.UpdateLayout();
+        ScrollToPage(page);
+        InvalidateVisual();
+        Schedule();
+        Changed?.Invoke();
+    }
+
     public void SetFit(FitMode fit)
     {
         Fit = fit;
