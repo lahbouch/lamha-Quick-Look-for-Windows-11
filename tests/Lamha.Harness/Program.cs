@@ -129,6 +129,7 @@ static class Program
                 else if (key.StartsWith("sheet:")) Sheet(window, int.Parse(key[6..]));
                 else if (key.StartsWith("tool:")) Click(window, int.Parse(key[5..]));
                 else if (key.StartsWith("wait:")) await Task.Delay(int.Parse(key[5..]));
+                else if (key.StartsWith("menu:")) ClickMenu(int.Parse(key[5..]));
                 await Task.Delay(120);
                 await Ready(window);
             }
@@ -189,6 +190,21 @@ static class Program
     {
         var b = (System.Windows.Controls.Button)w.ToolsHost.Children.OfType<UIElement>().ElementAt(index);
         b.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+    }
+
+    // Context menus live in their own popup window, so search every presentation source for the open one.
+    static void ClickMenu(int index)
+    {
+        foreach (PresentationSource source in PresentationSource.CurrentSources)
+            if (source.RootVisual is { } root && Find<System.Windows.Controls.ContextMenu>(root, m => m.IsOpen) is { } menu)
+            {
+                var item = (System.Windows.Controls.MenuItem)menu.Items[index]!;
+                Console.WriteLine($"menu click: {item.Header}");
+                item.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+                menu.IsOpen = false;
+                return;
+            }
+        Console.WriteLine("menu click: NO OPEN MENU");
     }
 
     static T? Find<T>(DependencyObject root, Func<T, bool> match) where T : DependencyObject

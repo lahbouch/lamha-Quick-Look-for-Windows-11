@@ -434,6 +434,57 @@ public class PdfRotationTests
     }
 }
 
+public class PageExtractionTests
+{
+    static string TwoPagePdf()
+    {
+        var file = Path.Combine(Directory.CreateTempSubdirectory("lamha-test").FullName, "src.pdf");
+        File.WriteAllText(file, "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R 4 0 R]/Count 2>>endobj\n" +
+            "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 100]>>endobj\n4 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 400]>>endobj\ntrailer<</Root 1 0 R>>\n");
+        return file;
+    }
+
+    [Fact]
+    public void A_saved_page_is_a_one_page_pdf_of_that_page()
+    {
+        var src = TwoPagePdf();
+        var output = Path.Combine(Path.GetDirectoryName(src)!, "out.pdf");
+        using (var doc = PdfDoc.Open(src))
+        {
+            Assert.True(doc.CanExtractPages);
+            doc.SavePages([1], output);
+        }
+        using var saved = PdfDoc.Open(output);
+        Assert.Equal(1, saved.PageCount);
+        Assert.Equal(new Size(300, 400), saved.Sizes[0]);
+    }
+
+    [Fact]
+    public void An_existing_file_is_never_overwritten()
+    {
+        var src = TwoPagePdf();
+        var output = Path.Combine(Path.GetDirectoryName(src)!, "taken.pdf");
+        File.WriteAllText(output, "keep me");
+        using var doc = PdfDoc.Open(src);
+        Assert.Throws<IOException>(() => doc.SavePages([0], output));
+        Assert.Equal("keep me", File.ReadAllText(output));
+    }
+
+    [Fact]
+    public void Names_sit_beside_the_original_and_sort_by_page()
+    {
+        var path = PageFiles.PathFor(@"C:\docs\تقرير.docx", 2, 12, _ => false);
+        Assert.Equal(@"C:\docs\تقرير - صفحة 03.pdf", path);
+    }
+
+    [Fact]
+    public void Taken_names_get_a_number()
+    {
+        var taken = new HashSet<string> { @"C:\d\a - صفحة 1.pdf", @"C:\d\a - صفحة 1 (2).pdf" };
+        Assert.Equal(@"C:\d\a - صفحة 1 (3).pdf", PageFiles.PathFor(@"C:\d\a.pdf", 0, 5, taken.Contains));
+    }
+}
+
 public class SvgSanitizerTests : IDisposable
 {
     readonly string _file = Path.Combine(Directory.CreateTempSubdirectory("lamha-test").FullName, "x.svg");

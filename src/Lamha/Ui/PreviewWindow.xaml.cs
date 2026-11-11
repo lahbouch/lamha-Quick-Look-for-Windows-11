@@ -41,6 +41,8 @@ public partial class PreviewWindow : Window
 
     public string? CurrentPath => _session?.Current;
 
+    internal void Notify(string message) => _notify(message);
+
     public void ShowSession(PreviewSession session, nint owner)
     {
         _session = session;

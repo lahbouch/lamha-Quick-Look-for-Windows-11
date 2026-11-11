@@ -15,7 +15,19 @@ static unsafe class Pdfium
     [StructLayout(LayoutKind.Sequential)]
     public struct FPDF_FILEACCESS { public uint Length; public nint Read; public nint Param; }
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate int WriteBlock(FPDF_FILEWRITE* self, byte* data, uint size);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FPDF_FILEWRITE { public int Version; public nint WriteBlock; }
+
+    public const uint FPDF_NO_INCREMENTAL = 2, PERM_MODIFY = 0x8, PERM_ASSEMBLE = 0x400;
+
     [DllImport(Dll)] public static extern void FPDF_InitLibrary();
+    [DllImport(Dll)] public static extern nint FPDF_CreateNewDocument();
+    [DllImport(Dll)] public static extern int FPDF_ImportPagesByIndex(nint dest, nint src, int* indices, uint length, int index);
+    [DllImport(Dll)] public static extern int FPDF_SaveAsCopy(nint doc, FPDF_FILEWRITE* writer, uint flags);
+    [DllImport(Dll)] public static extern uint FPDF_GetDocPermissions(nint doc);
     [DllImport(Dll, CharSet = CharSet.Ansi)] public static extern nint FPDF_LoadCustomDocument(FPDF_FILEACCESS* access, [MarshalAs(UnmanagedType.LPUTF8Str)] string? password);
     [DllImport(Dll)] public static extern void FPDF_CloseDocument(nint doc);
     [DllImport(Dll)] public static extern uint FPDF_GetLastError();

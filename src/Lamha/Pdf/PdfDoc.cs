@@ -61,6 +61,63 @@ public sealed unsafe class PdfDoc : IDisposable
     }
 
     /// <summary>Turns every page clockwise by quarter turns. <see cref="Sizes"/> then describes the page as displayed.</summary>
+    // PDFium writes through a callback; Gate guarantees one save at a time, so one static target is enough.
+    static Stream? _writing;
+    static readonly WriteBlock Writer = (self, data, size) =>
+    {
+        try { _writing!.Write(new ReadOnlySpan<byte>(data, (int)size)); return 1; }
+        catch (IOException) { return 0; } // an exception must not cross back into native code
+    };
+    static readonly nint WriterPtr = Marshal.GetFunctionPointerForDelegate(Writer);
+
+    /// <summary>False when the author's permissions forbid taking pages out of the document.</summary>
+    public bool CanExtractPages
+    {
+        get
+        {
+            lock (Gate)
+            {
+                uint p = FPDF_GetDocPermissions(_doc);
+                return (p & (PERM_MODIFY | PERM_ASSEMBLE)) != 0;
+            }
+        }
+    }
+
+    /// <summary>Writes the given pages as a new PDF. Fails rather than replace an existing file.</summary>
+    public void SavePages(int[] pages, string path)
+    {
+        lock (Gate)
+        {
+            ObjectDisposedException.ThrowIf(_doc == 0, this);
+            nint dest = FPDF_CreateNewDocument();
+            bool created = false;
+            try
+            {
+                fixed (int* indices = pages)
+                    if (FPDF_ImportPagesByIndex(dest, _doc, indices, (uint)pages.Length, 0) == 0) throw new PdfCorruptException();
+                using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
+                {
+                    created = true;
+                    _writing = file;
+                    var writer = new FPDF_FILEWRITE { Version = 1, WriteBlock = WriterPtr };
+                    bool ok = FPDF_SaveAsCopy(dest, &writer, FPDF_NO_INCREMENTAL) != 0;
+                    _writing = null;
+                    if (!ok) throw new IOException("PDF save failed");
+                }
+            }
+            catch when (created)
+            {
+                try { File.Delete(path); } catch (IOException) { } // never leave half a file behind
+                throw;
+            }
+            finally
+            {
+                _writing = null;
+                FPDF_CloseDocument(dest);
+            }
+        }
+    }
+
     public void Rotate(int quarters)
     {
         lock (Gate)

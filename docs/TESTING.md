@@ -103,6 +103,14 @@ Ctrl+wheel zoom, and double-click to open the original.
 Most single-key shortcuts are tested through the real window with synthetic key events. Not exercised: `F` (open folder),
 `F3`, `J`/`L` (seek), `Shift+R`, Ctrl+P and Ctrl+wheel.
 
+## Splitting and extracting pages
+
+Through the real window on copies of a PDF and a Word document: extracting the current page, splitting into one file per page,
+repeat runs producing `(2)` and `(3)` names instead of overwriting, the originals unchanged byte for byte, each output a
+single page with the right content, and no button on an Excel file. Unit tests cover the naming and the refusal to overwrite.
+Not tested: a PDF whose permissions forbid extraction (the button should be hidden), and a read-only folder (an Arabic error
+message should appear).
+
 ## Known limitations
 
 **Explorer**
@@ -119,6 +127,7 @@ Most single-key shortcuts are tested through the real window with synthetic key 
 - Very tall sheets (tens of thousands of rows): an exact phrase near the bottom can be missed, while single words are found. Printing fits a tall sheet onto one page, so it becomes unreadably small.
 - Legacy `.xls` hidden sheets are shown. They are hidden correctly in `.xlsx`.
 - Password-protected Office files are not opened; a message explains this. A password-protected legacy `.doc` was not tested and may wait for the 2-minute timeout.
+- Pages taken from a Word document are saved as PDF, not as Word files.
 - Fonts missing from both the machine and the document are substituted, so layout can shift slightly from Word.
 - Markdown and HTML are shown as highlighted source rather than rendered. HTML by design: running it would break the "no scripts" rule.
 - Images over 8192 px on a side are decoded at reduced size to protect memory; the true dimensions are still shown.

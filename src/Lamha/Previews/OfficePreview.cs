@@ -26,7 +26,7 @@ public sealed class OfficeProvider(OfficeConverter converter) : IPreviewProvider
             {
                 FileKind.PowerPoint => new PdfPreview.Options("شريحة", FitMode.Page, Print: true),
                 FileKind.Excel => new PdfPreview.Options("ورقة", FitMode.Actual, Print: true, Sheets(doc, r.Path)),
-                _ => new PdfPreview.Options("صفحة", PdfProvider.ToFit(r.Settings.Zoom), Print: true),
+                _ => new PdfPreview.Options("صفحة", PdfProvider.ToFit(r.Settings.Zoom), Print: true, ExtractFrom: r.Path),
             };
             return new PdfPreview(doc, options);
         }

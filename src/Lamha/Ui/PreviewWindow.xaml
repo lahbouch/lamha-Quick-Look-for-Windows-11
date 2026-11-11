@@ -104,6 +104,7 @@
                         <Run Text="Home أو End: أول صفحة أو آخر صفحة" /><LineBreak />
                         <Run Text="Ctrl+F: بحث، F3: النتيجة التالية" /><LineBreak />
                         <Run Text="T: المصغرات، Ctrl+P: طباعة" /><LineBreak />
+                        <Run Text="E: تقسيم الصفحات أو استخراجها (PDF وWord)" /><LineBreak />
                         <Run Text="W: التفاف الأسطر" /><LineBreak />
                         <Run Text="P: تشغيل أو إيقاف، J أو L: تقديم أو إرجاع 5 ثوانٍ" /><LineBreak />
                         <Run Text="السهمان لأعلى ولأسفل: مستوى الصوت، M: كتم الصوت" />

@@ -19,7 +19,7 @@ public sealed class PdfProvider : IPreviewProvider
     public async Task<IPreview> OpenAsync(PreviewRequest r, CancellationToken ct)
     {
         var doc = await Task.Run(() => PdfDoc.Open(r.Path, r.Password), ct);
-        return new PdfPreview(doc, new PdfPreview.Options("صفحة", ToFit(r.Settings.Zoom), Print: true));
+        return new PdfPreview(doc, new PdfPreview.Options("صفحة", ToFit(r.Settings.Zoom), Print: true, ExtractFrom: r.Path));
     }
 
     internal static FitMode ToFit(DefaultZoom z) => z switch
@@ -33,7 +33,7 @@ public sealed class PdfProvider : IPreviewProvider
 /// <summary>The reader for PDFs and for Office files converted to PDF.</summary>
 public sealed class PdfPreview : IPreview
 {
-    public sealed record Options(string UnitName, FitMode Fit, bool Print, IReadOnlyList<(string Title, int Page)>? Sheets = null);
+    public sealed record Options(string UnitName, FitMode Fit, bool Print, IReadOnlyList<(string Title, int Page)>? Sheets = null, string? ExtractFrom = null);
 
     readonly PdfDoc _doc;
     readonly Options _options;
@@ -46,6 +46,8 @@ public sealed class PdfPreview : IPreview
     readonly CancellationTokenSource _life = new();
     CancellationTokenSource? _searchCts;
     int _foundIndex = -1;
+    ContextMenu? _extractMenu;
+    bool _extracting;
     ListBox? _tabs;
     string _query = "";
 
@@ -124,6 +126,12 @@ public sealed class PdfPreview : IPreview
         _searchCount = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 2, 0), Foreground = (Brush)Application.Current.FindResource("TextSecondary"), FontSize = 12 };
         tools.Add(_search);
         tools.Add(_searchCount);
+        if (options.ExtractFrom is not null && doc.CanExtractPages)
+        {
+            var cut = Tool.Button("\uE8C6", "تقسيم واستخراج الصفحات (E)", OpenExtractMenu);
+            _extractMenu = new ContextMenu { PlacementTarget = cut, Placement = PlacementMode.Bottom };
+            tools.Add(cut);
+        }
         if (options.Print) tools.Add(Tool.Button("", "طباعة (Ctrl+P)", Print));
         Tools = tools;
 
@@ -251,6 +259,53 @@ public sealed class PdfPreview : IPreview
         _surface.SetHits([]);
     }
 
+    void OpenExtractMenu()
+    {
+        var menu = _extractMenu!;
+        menu.Items.Clear();
+        int page = _surface.CurrentPage;
+        menu.Items.Add(MenuItem($"استخراج الصفحة الحالية ({page + 1})", () => Extract([page])));
+        if (_doc.PageCount > 1)
+            menu.Items.Add(MenuItem($"تقسيم إلى ملف لكل صفحة ({_doc.PageCount})", () => Extract(Enumerable.Range(0, _doc.PageCount).ToArray())));
+        menu.IsOpen = true;
+    }
+
+    static MenuItem MenuItem(string header, Action action)
+    {
+        var item = new MenuItem { Header = header };
+        item.Click += (_, _) => action();
+        return item;
+    }
+
+    /// <summary>Saves each page as its own PDF in the original's folder. The original is only read.</summary>
+    async void Extract(int[] pages)
+    {
+        if (_extracting) return;
+        _extracting = true;
+        var window = Window.GetWindow(View) as PreviewWindow;
+        var source = _options.ExtractFrom!;
+        int total = _doc.PageCount;
+        if (pages.Length > 1) window?.Notify("جارٍ تقسيم الصفحات…");
+        try
+        {
+            await Task.Run(() =>
+            {
+                foreach (int p in pages) _doc.SavePages([p], PageFiles.PathFor(source, p, total));
+            });
+            window?.Notify(pages.Length == 1
+                ? $"تم حفظ الصفحة {pages[0] + 1} في مجلد الملف الأصلي."
+                : $"تم حفظ الصفحات في ملفات منفصلة ({pages.Length}) في مجلد الملف الأصلي.");
+            Log.Info($"pages extracted: {pages.Length}");
+        }
+        catch (ObjectDisposedException) { } // the preview was closed mid-way; pages already written stay
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or PdfCorruptException)
+        {
+            Log.Error("page extraction failed", e);
+            window?.Notify("تعذر حفظ الصفحات في مجلد الملف الأصلي.");
+        }
+        finally { _extracting = false; }
+    }
+
     void Rotate(int quarters)
     {
         ClearSearch(); // highlights are positions on the page as it was
@@ -278,6 +333,7 @@ public sealed class PdfPreview : IPreview
             case Key.Home when _tabs is null: _surface.ScrollToPage(0); break;
             case Key.End when _tabs is null: _surface.ScrollToPage(_doc.PageCount - 1); break;
             case Key.R: Rotate(shift ? 3 : 1); break;
+            case Key.E when _extractMenu is not null: OpenExtractMenu(); break;
             case Key.T when _tabs is null && _doc.PageCount > 1: ToggleThumbnails(); break;
             case Key.F3: Jump(shift ? -1 : +1); break;
             case Key.P when _options.Print: Print(); break;
