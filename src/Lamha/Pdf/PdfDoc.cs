@@ -13,6 +13,9 @@ public sealed class PdfLockedException : Exception;
 
 public readonly record struct SearchHit(int Page, int Start, int Count);
 
+/// <summary>Straight-alpha BGRA pixels and the page size, in points, to place them on.</summary>
+public sealed record ImagePage(byte[] Bgra, int Width, int Height, double PageWidth, double PageHeight);
+
 /// <summary>A PDF held open read-only. PDFium is not thread-safe, so every call goes through <see cref="Gate"/>.</summary>
 public sealed unsafe class PdfDoc : IDisposable
 {
@@ -98,25 +101,65 @@ public sealed unsafe class PdfDoc : IDisposable
         }
     }
 
-    /// <summary>Joins whole documents, in order, into a new PDF. Fails rather than replace an existing file.</summary>
-    public static void Merge(IReadOnlyList<string> sources, string path)
+    /// <summary>
+    /// Joins documents and pictures, in order, into a new PDF; each picture becomes a page of its own size. Fails rather
+    /// than replace an existing file.
+    /// </summary>
+    public static void Merge(IReadOnlyList<string> sources, string path, Func<string, ImagePage>? decodeImage = null)
     {
         var docs = new List<PdfDoc>();
+        var parts = new List<object>();
         try
         {
-            foreach (var s in sources) docs.Add(Open(s));
-            if (docs.FirstOrDefault(d => !d.CanExtractPages) is not null) throw new PdfLockedException();
+            // Decoding and parsing happen before taking Gate, so a large photo does not stall other previews.
+            foreach (var s in sources)
+            {
+                if (FileTypes.Detect(s) == FileKind.Image) parts.Add(decodeImage!(s));
+                else
+                {
+                    var d = Open(s);
+                    docs.Add(d);
+                    parts.Add(d);
+                }
+            }
+            if (docs.Any(d => !d.CanExtractPages)) throw new PdfLockedException();
             lock (Gate)
                 WriteNew(path, dest =>
                 {
-                    foreach (var d in docs)
-                        if (FPDF_ImportPagesByIndex(dest, d._doc, null, 0, FPDF_GetPageCount(dest)) == 0) throw new PdfCorruptException();
+                    foreach (var part in parts)
+                    {
+                        if (part is PdfDoc d)
+                        {
+                            if (FPDF_ImportPagesByIndex(dest, d._doc, null, 0, FPDF_GetPageCount(dest)) == 0) throw new PdfCorruptException();
+                        }
+                        else AddImagePage(dest, (ImagePage)part);
+                    }
                 });
         }
         finally
         {
             foreach (var d in docs) d.Dispose();
         }
+    }
+
+    static void AddImagePage(nint dest, ImagePage image)
+    {
+        nint page = FPDFPage_New(dest, FPDF_GetPageCount(dest), image.PageWidth, image.PageHeight);
+        try
+        {
+            nint obj = FPDFPageObj_NewImageObj(dest);
+            fixed (byte* pixels = image.Bgra)
+            {
+                nint bitmap = FPDFBitmap_CreateEx(image.Width, image.Height, BitmapBGRA, pixels, image.Width * 4);
+                int ok = FPDFImageObj_SetBitmap(&page, 1, obj, bitmap); // copies the pixels
+                FPDFBitmap_Destroy(bitmap);
+                if (ok == 0) throw new PdfCorruptException();
+            }
+            FPDFPageObj_Transform(obj, image.PageWidth, 0, 0, image.PageHeight, 0, 0); // a unit image scaled to fill the page
+            FPDFPage_InsertObject(page, obj);
+            if (FPDFPage_GenerateContent(page) == 0) throw new PdfCorruptException();
+        }
+        finally { FPDF_ClosePage(page); }
     }
 
     // Callers hold Gate.

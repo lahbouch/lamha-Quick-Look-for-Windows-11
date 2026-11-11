@@ -25,6 +25,12 @@ static unsafe class Pdfium
 
     [DllImport(Dll)] public static extern void FPDF_InitLibrary();
     [DllImport(Dll)] public static extern nint FPDF_CreateNewDocument();
+    [DllImport(Dll)] public static extern nint FPDFPage_New(nint doc, int index, double width, double height);
+    [DllImport(Dll)] public static extern nint FPDFPageObj_NewImageObj(nint doc);
+    [DllImport(Dll)] public static extern int FPDFImageObj_SetBitmap(nint* pages, int count, nint imageObject, nint bitmap);
+    [DllImport(Dll)] public static extern void FPDFPageObj_Transform(nint pageObject, double a, double b, double c, double d, double e, double f);
+    [DllImport(Dll)] public static extern void FPDFPage_InsertObject(nint page, nint pageObject);
+    [DllImport(Dll)] public static extern int FPDFPage_GenerateContent(nint page);
     [DllImport(Dll)] public static extern int FPDF_ImportPagesByIndex(nint dest, nint src, int* indices, uint length, int index);
     [DllImport(Dll)] public static extern int FPDF_SaveAsCopy(nint doc, FPDF_FILEWRITE* writer, uint flags);
     [DllImport(Dll)] public static extern uint FPDF_GetDocPermissions(nint doc);

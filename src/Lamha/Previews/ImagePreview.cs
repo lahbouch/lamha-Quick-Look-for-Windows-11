@@ -29,6 +29,21 @@ public sealed class ImageProvider : IPreviewProvider
 
     static IPreview CreateOnUi(Loaded image) => Application.Current.Dispatcher.Invoke(() => new ImagePreview(image));
 
+    /// <summary>
+    /// A picture as a page for merging. The page matches the picture's size at 96 DPI, and SVG is drawn at twice
+    /// that so it stays sharp when printed.
+    /// </summary>
+    internal static Lamha.Pdf.ImagePage PageFor(string path)
+    {
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        var image = ext == ".svg" ? OpenSvg(path) : ext is ".gif" or ".webp" ? DecodeSkia(path) : DecodeWic(path);
+        var frame = new FormatConvertedBitmap(image.Rasterize?.Invoke(2) ?? image.Frames[0], PixelFormats.Bgra32, null, 0);
+        int stride = frame.PixelWidth * 4;
+        var pixels = new byte[stride * frame.PixelHeight];
+        frame.CopyPixels(pixels, stride, 0);
+        return new(pixels, frame.PixelWidth, frame.PixelHeight, image.PixelWidth * 0.75, image.PixelHeight * 0.75);
+    }
+
     internal sealed record Loaded(BitmapSource[] Frames, TimeSpan[] Delays, int PixelWidth, int PixelHeight, Func<double, BitmapSource>? Rasterize = null);
 
     static FileStream Read(string path) =>

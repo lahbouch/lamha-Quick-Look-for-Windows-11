@@ -48,11 +48,11 @@ public partial class PreviewWindow : Window
     internal void Notify(string message) => _notify(message);
 
     List<string> Mergeable() =>
-        _session?.Files.Where(f => FileTypes.Detect(f) is FileKind.Pdf or FileKind.Word).ToList() ?? [];
+        _session?.Files.Where(f => FileTypes.Detect(f) is FileKind.Pdf or FileKind.Word or FileKind.Image).ToList() ?? [];
 
     void OnMerge(object sender, RoutedEventArgs e) => MergeSelection();
 
-    /// <summary>Joins the selected PDF and Word files, in selection order, into one PDF beside the first. Nothing is overwritten.</summary>
+    /// <summary>Joins the selected PDF, Word and picture files, in selection order, into one PDF beside the first. Nothing is overwritten.</summary>
     internal async void MergeSelection()
     {
         var files = Mergeable();
@@ -63,14 +63,15 @@ public partial class PreviewWindow : Window
         {
             var pdfs = new List<string>();
             foreach (var f in files)
-                pdfs.Add(FileTypes.Detect(f) == FileKind.Pdf ? f : await _converter.ConvertAsync(f, CancellationToken.None));
+                pdfs.Add(FileTypes.Detect(f) == FileKind.Word ? await _converter.ConvertAsync(f, CancellationToken.None) : f);
             var output = PageFiles.MergedPathFor(files[0]);
-            await Task.Run(() => PdfDoc.Merge(pdfs, output));
+            await Task.Run(() => PdfDoc.Merge(pdfs, output, ImageProvider.PageFor));
             Log.Info($"files merged: {files.Count}");
             _notify($"تم دمج الملفات ({files.Count}) في «{Path.GetFileName(output)}».");
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or PdfCorruptException or PdfPasswordException
-                                       or PdfLockedException or OfficeConversionException or OfficeEngineMissingException)
+                                       or PdfLockedException or OfficeConversionException or OfficeEngineMissingException
+                                       or InvalidDataException or NotSupportedException or FormatException or System.Xml.XmlException)
         {
             Log.Error("merge failed", e);
             _notify("تعذر الدمج: " + PreviewErrors.Message(e));

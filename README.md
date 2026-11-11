@@ -23,7 +23,7 @@ Lamha works offline, needs no administrator rights, and does not need Microsoft 
   right-to-left layout and syntax highlighting.
 - **Media:** MP4 and MP3.
 - **Page tools:** split a PDF or Word document into one PDF per page, extract the current page, or merge several selected
-  files into one PDF. Results are saved next to the originals; nothing is overwritten.
+  documents and pictures into one PDF. Results are saved next to the originals; nothing is overwritten.
 - **Keyboard first:** every action has a shortcut. Press F1 in the preview for the list.
 - **Arabic interface** throughout, right to left, in IBM Plex Sans Arabic. Document content keeps its own language and direction.
 

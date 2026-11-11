@@ -116,7 +116,7 @@ message should appear).
 Through the real window: two PDFs, a Word file and an Excel file merged into one PDF of 6 pages in selection order, the
 landscape page kept landscape, the Excel file skipped, a second merge named `(2)` instead of overwriting, and the originals
 unchanged byte for byte. The button stayed hidden for one file, and for one PDF plus one Excel file. Unit tests cover order,
-refusal to overwrite and naming. Not tested: merging a password-protected or extraction-locked PDF (an Arabic error should appear).
+refusal to overwrite and naming. Pictures: JPEG, PNG with transparency, an EXIF-rotated photo, SVG, animated GIF, WebP and TIFF merged with a PDF into an 8-page, 239 KB PDF in selection order. Each picture filled a page of its own size, transparency showed as white, the photo was upright, and the GIF gave its first frame. Not tested: merging a password-protected or extraction-locked PDF (an Arabic error should appear).
 
 ## Known limitations
 

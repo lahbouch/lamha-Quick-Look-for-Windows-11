@@ -509,6 +509,19 @@ public class MergeTests
     }
 
     [Fact]
+    public void Pictures_become_pages_of_their_own_size_in_selection_order()
+    {
+        var dir = Directory.CreateTempSubdirectory("lamha-test").FullName;
+        var a = Pdf(dir, "a.pdf", (100, 100));
+        var output = Path.Combine(dir, "m.pdf");
+        PdfDoc.Merge(["photo.jpg", a, "logo.png"], output, p => p == "photo.jpg"
+            ? new ImagePage(new byte[3 * 2 * 4], 3, 2, 450, 300)
+            : new ImagePage(new byte[1 * 1 * 4], 1, 1, 50, 50));
+        using var merged = PdfDoc.Open(output);
+        Assert.Equal([new Size(450, 300), new Size(100, 100), new Size(50, 50)], merged.Sizes);
+    }
+
+    [Fact]
     public void An_existing_file_is_never_overwritten()
     {
         var dir = Directory.CreateTempSubdirectory("lamha-test").FullName;
