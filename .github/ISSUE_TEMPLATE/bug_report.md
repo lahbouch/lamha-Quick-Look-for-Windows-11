@@ -15,8 +15,8 @@ labels: bug
 **File type** (for example PDF, DOCX, PNG). Attach a sample if you can share one; please do not attach private documents.
 
 
-**Lamha version** (Settings, About) and **Windows version** (`winver`):
+**Lamha version** (the settings window, under حول التطبيق) and **Windows version** (`winver`):
 
 
-**Log lines** (optional): Settings, then *Open log folder*, then `lamha.log`. The log records file types, never file
+**Log lines** (optional): the settings window (الإعدادات), then *فتح مجلد السجلات*, then `lamha.log`. The log records file types, never file
 names or contents, but check before pasting.
