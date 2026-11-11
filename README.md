@@ -78,6 +78,8 @@ Issues and pull requests are welcome. Please:
 - run the unit tests, and for changes to Explorer integration, `tests\e2e-explorer.ps1` on an unlocked desktop;
 - never add network access or anything that writes to a previewed file.
 
+To report a security problem, see [SECURITY.md](SECURITY.md).
+
 ## License
 
 Lamha is released under the [MIT License](LICENSE). It bundles third-party components under their own licenses,
