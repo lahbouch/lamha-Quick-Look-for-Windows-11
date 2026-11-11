@@ -97,7 +97,7 @@
                         <Run Text="Enter: فتح الملف الأصلي" /><LineBreak />
                         <Run Text="F: فتح المجلد" /><LineBreak />
                         <Run Text="Ctrl+C: نسخ" /><LineBreak />
-                        <Run Text=".: ملء الشاشة" /><LineBreak />
+                        <Run Text="النقطة (.): ملء الشاشة" /><LineBreak />
                         <Run Text="+ أو -: تكبير أو تصغير" /><LineBreak />
                         <Run Text="0: ملاءمة النافذة، 1: الحجم الفعلي، 2: ملاءمة العرض" /><LineBreak />
                         <Run Text="R: تدوير، Shift+R: تدوير عكسي" /><LineBreak />

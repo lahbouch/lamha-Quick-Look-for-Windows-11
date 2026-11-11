@@ -25,6 +25,13 @@ headless conversion does not need, then compiles `installer\Lamha.iss`.
 For a smaller, slower-to-build installer, change `Compression` in `installer\Lamha.iss` to `lzma2/ultra64` and set
 `SolidCompression=yes`.
 
+## Releasing
+
+1. Set the version in `src/Lamha/Lamha.csproj` and `installer/Lamha.iss`.
+2. Run `build.ps1`.
+3. Create a GitHub release and attach `dist\Lamha-Setup-<version>.exe`. It is about 230 MB, well under GitHub's 2 GB
+   limit per release file. Do not commit `dist\`.
+
 ## Test tools
 
 - `tests\Lamha.Harness`: drives the real window without a desktop. `snapshot OUT "file|Key|find:text"` saves PNGs,

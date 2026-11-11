@@ -4,3 +4,8 @@ dist/
 *.user
 .vs/
 
+*.suo
+.idea/
+TestResults/
+# written by tests\e2e-explorer.ps1 on each run
+docs/e2e-results.txt

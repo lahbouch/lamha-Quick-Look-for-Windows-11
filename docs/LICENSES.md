@@ -1,5 +1,7 @@
 # Dependencies and licensing
 
+Lamha's own code is under the MIT License (`LICENSE`). The components below keep their own licenses.
+
 Everything shipped is free for commercial use. No component is GPL or AGPL, and none phones home.
 
 | Component | Used for | Version | License | Shipped how |
