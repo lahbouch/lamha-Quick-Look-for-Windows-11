@@ -111,7 +111,7 @@ static class Program
         using var converter = new OfficeConverter();
         var registry = new PreviewRegistry(new PdfProvider(), new OfficeProvider(converter), new ImageProvider(), new TextProvider(), new MediaProvider());
         var messages = new List<string>();
-        var window = new PreviewWindow(registry, settings, messages.Add);
+        var window = new PreviewWindow(registry, settings, messages.Add, converter);
 
         int n = 0;
         foreach (var spec in specs)
@@ -130,13 +130,14 @@ static class Program
                 else if (key.StartsWith("tool:")) Click(window, int.Parse(key[5..]));
                 else if (key.StartsWith("wait:")) await Task.Delay(int.Parse(key[5..]));
                 else if (key.StartsWith("menu:")) ClickMenu(int.Parse(key[5..]));
+                else if (key == "merge") window.MergeButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                 await Task.Delay(120);
                 await Ready(window);
             }
             await Task.Delay(700); // tiles and thumbnails arrive asynchronously
             var name = $"{n++:00}_{Path.GetExtension(files[0]).TrimStart('.')}.png";
             Save(window, Path.Combine(outDir, name));
-            Console.WriteLine($"{name}\t{Path.GetFileName(files[0])}\tready={ready}ms\tsize={window.ActualWidth:0}x{window.ActualHeight:0}\tname=[{window.FileName.Text}]\tmeta=[{window.Meta.Text}]\tstatus=[{window.Status.Text}]\tpos=[{window.Position.Text}]\terror=[{(window.ErrorPanel.IsVisible ? window.ErrorText.Text : "")}]\tpw={window.PasswordPanel.IsVisible}\tvisible={window.IsVisible}\ttools={window.ToolsHost.Children.Count}\tmem={Environment.WorkingSet / 1048576}MB");
+            Console.WriteLine($"{name}\t{Path.GetFileName(files[0])}\tready={ready}ms\tsize={window.ActualWidth:0}x{window.ActualHeight:0}\tname=[{window.FileName.Text}]\tmeta=[{window.Meta.Text}]\tstatus=[{window.Status.Text}]\tpos=[{window.Position.Text}]\tmerge={window.MergeButton.IsVisible}\terror=[{(window.ErrorPanel.IsVisible ? window.ErrorText.Text : "")}]\tpw={window.PasswordPanel.IsVisible}\tvisible={window.IsVisible}\ttools={window.ToolsHost.Children.Count}\tmem={Environment.WorkingSet / 1048576}MB");
             window.HidePreview();
             await Task.Delay(50);
         }

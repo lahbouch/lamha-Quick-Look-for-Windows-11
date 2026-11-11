@@ -111,6 +111,13 @@ single page with the right content, and no button on an Excel file. Unit tests c
 Not tested: a PDF whose permissions forbid extraction (the button should be hidden), and a read-only folder (an Arabic error
 message should appear).
 
+## Merging files
+
+Through the real window: two PDFs, a Word file and an Excel file merged into one PDF of 6 pages in selection order, the
+landscape page kept landscape, the Excel file skipped, a second merge named `(2)` instead of overwriting, and the originals
+unchanged byte for byte. The button stayed hidden for one file, and for one PDF plus one Excel file. Unit tests cover order,
+refusal to overwrite and naming. Not tested: merging a password-protected or extraction-locked PDF (an Arabic error should appear).
+
 ## Known limitations
 
 **Explorer**

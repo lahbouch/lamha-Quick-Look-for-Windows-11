@@ -23,7 +23,7 @@ public sealed class PreviewController : IDisposable
     {
         Settings = settings;
         var registry = new PreviewRegistry(new PdfProvider(), new OfficeProvider(converter), new ImageProvider(), new TextProvider(), new MediaProvider());
-        _window = new PreviewWindow(registry, settings, Notify);
+        _window = new PreviewWindow(registry, settings, Notify, converter);
 
         _hook.CaptureTarget = () => Settings.ExplorerIntegration ? ExplorerProbe.CaptureTarget() : 0;
         _hook.SpacePressed += target => _window.Dispatcher.BeginInvoke(() => OnSpace(target));

@@ -10,8 +10,17 @@ public static class PageFiles
         var name = Path.GetFileNameWithoutExtension(source);
         // Padding keeps "صفحة 02" before "صفحة 10" when the folder is sorted by name.
         var number = (page + 1).ToString().PadLeft(total.ToString().Length, '0');
-        var path = Path.Combine(dir, $"{name} - صفحة {number}.pdf");
-        for (int i = 2; exists(path); i++) path = Path.Combine(dir, $"{name} - صفحة {number} ({i}).pdf");
+        return Unique(dir, $"{name} - صفحة {number}", exists);
+    }
+
+    /// <summary>The merged file goes beside the first selected file and is named after it.</summary>
+    public static string MergedPathFor(string first, Func<string, bool>? exists = null) =>
+        Unique(Path.GetDirectoryName(first)!, $"{Path.GetFileNameWithoutExtension(first)} - مدمج", exists ?? File.Exists);
+
+    static string Unique(string dir, string stem, Func<string, bool> exists)
+    {
+        var path = Path.Combine(dir, stem + ".pdf");
+        for (int i = 2; exists(path); i++) path = Path.Combine(dir, $"{stem} ({i}).pdf");
         return path;
     }
 }

@@ -9,6 +9,7 @@ namespace Lamha.Pdf;
 
 public sealed class PdfPasswordException(bool wrongPassword) : Exception { public bool WrongPassword { get; } = wrongPassword; }
 public sealed class PdfCorruptException : Exception;
+public sealed class PdfLockedException : Exception;
 
 public readonly record struct SearchHit(int Page, int Start, int Count);
 
@@ -89,32 +90,62 @@ public sealed unsafe class PdfDoc : IDisposable
         lock (Gate)
         {
             ObjectDisposedException.ThrowIf(_doc == 0, this);
-            nint dest = FPDF_CreateNewDocument();
-            bool created = false;
-            try
+            WriteNew(path, dest =>
             {
                 fixed (int* indices = pages)
                     if (FPDF_ImportPagesByIndex(dest, _doc, indices, (uint)pages.Length, 0) == 0) throw new PdfCorruptException();
-                using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
+            });
+        }
+    }
+
+    /// <summary>Joins whole documents, in order, into a new PDF. Fails rather than replace an existing file.</summary>
+    public static void Merge(IReadOnlyList<string> sources, string path)
+    {
+        var docs = new List<PdfDoc>();
+        try
+        {
+            foreach (var s in sources) docs.Add(Open(s));
+            if (docs.FirstOrDefault(d => !d.CanExtractPages) is not null) throw new PdfLockedException();
+            lock (Gate)
+                WriteNew(path, dest =>
                 {
-                    created = true;
-                    _writing = file;
-                    var writer = new FPDF_FILEWRITE { Version = 1, WriteBlock = WriterPtr };
-                    bool ok = FPDF_SaveAsCopy(dest, &writer, FPDF_NO_INCREMENTAL) != 0;
-                    _writing = null;
-                    if (!ok) throw new IOException("PDF save failed");
-                }
-            }
-            catch when (created)
+                    foreach (var d in docs)
+                        if (FPDF_ImportPagesByIndex(dest, d._doc, null, 0, FPDF_GetPageCount(dest)) == 0) throw new PdfCorruptException();
+                });
+        }
+        finally
+        {
+            foreach (var d in docs) d.Dispose();
+        }
+    }
+
+    // Callers hold Gate.
+    static void WriteNew(string path, Action<nint> fill)
+    {
+        nint dest = FPDF_CreateNewDocument();
+        bool created = false;
+        try
+        {
+            fill(dest);
+            using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
             {
-                try { File.Delete(path); } catch (IOException) { } // never leave half a file behind
-                throw;
-            }
-            finally
-            {
+                created = true;
+                _writing = file;
+                var writer = new FPDF_FILEWRITE { Version = 1, WriteBlock = WriterPtr };
+                bool ok = FPDF_SaveAsCopy(dest, &writer, FPDF_NO_INCREMENTAL) != 0;
                 _writing = null;
-                FPDF_CloseDocument(dest);
+                if (!ok) throw new IOException("PDF save failed");
             }
+        }
+        catch when (created)
+        {
+            try { File.Delete(path); } catch (IOException) { } // never leave half a file behind
+            throw;
+        }
+        finally
+        {
+            _writing = null;
+            FPDF_CloseDocument(dest);
         }
     }
 

@@ -376,7 +376,7 @@ public class ErrorMessageTests
     public static TheoryData<Exception> Cases() =>
     [
         new FileNotFoundException(), new DirectoryNotFoundException(), new UnauthorizedAccessException(), new IOException(),
-        new PdfCorruptException(), new OfficeConversionException(), new OfficeEngineMissingException(), new InvalidOperationException(),
+        new PdfCorruptException(), new PdfLockedException(), new PdfPasswordException(false), new OfficeConversionException(), new OfficeEngineMissingException(), new InvalidOperationException(),
     ];
 }
 
@@ -483,6 +483,52 @@ public class PageExtractionTests
         var taken = new HashSet<string> { @"C:\d\a - صفحة 1.pdf", @"C:\d\a - صفحة 1 (2).pdf" };
         Assert.Equal(@"C:\d\a - صفحة 1 (3).pdf", PageFiles.PathFor(@"C:\d\a.pdf", 0, 5, taken.Contains));
     }
+}
+
+public class MergeTests
+{
+    static string Pdf(string dir, string name, params (int W, int H)[] pages)
+    {
+        var kids = string.Join(" ", pages.Select((_, i) => $"{i + 3} 0 R"));
+        var objs = string.Concat(pages.Select((p, i) => $"{i + 3} 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 {p.W} {p.H}]>>endobj\n"));
+        var file = Path.Combine(dir, name);
+        File.WriteAllText(file, $"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[{kids}]/Count {pages.Length}>>endobj\n{objs}trailer<</Root 1 0 R>>\n");
+        return file;
+    }
+
+    [Fact]
+    public void Documents_are_joined_whole_and_in_order()
+    {
+        var dir = Directory.CreateTempSubdirectory("lamha-test").FullName;
+        var a = Pdf(dir, "a.pdf", (100, 100), (200, 200));
+        var b = Pdf(dir, "b.pdf", (300, 300));
+        var output = Path.Combine(dir, "m.pdf");
+        PdfDoc.Merge([b, a], output);
+        using var merged = PdfDoc.Open(output);
+        Assert.Equal([new Size(300, 300), new Size(100, 100), new Size(200, 200)], merged.Sizes);
+    }
+
+    [Fact]
+    public void An_existing_file_is_never_overwritten()
+    {
+        var dir = Directory.CreateTempSubdirectory("lamha-test").FullName;
+        var a = Pdf(dir, "a.pdf", (100, 100));
+        var output = Path.Combine(dir, "taken.pdf");
+        File.WriteAllText(output, "keep me");
+        Assert.Throws<IOException>(() => PdfDoc.Merge([a, a], output));
+        Assert.Equal("keep me", File.ReadAllText(output));
+    }
+
+    [Fact]
+    public void The_merged_name_follows_the_first_file_and_avoids_taken_names()
+    {
+        var taken = new HashSet<string> { Path.Combine(@"C:\d", "تقرير - مدمج.pdf") };
+        Assert.Equal(Path.Combine(@"C:\d", "تقرير - مدمج (2).pdf"), PageFiles.MergedPathFor(Path.Combine(@"C:\d", "تقرير.docx"), taken.Contains));
+    }
+
+    [Fact]
+    public void The_session_exposes_files_in_selection_order() =>
+        Assert.Equal(["b.pdf", "a.docx"], new PreviewSession(["b.pdf", "x.zip", "a.docx"], _ => true).Files);
 }
 
 public class SvgSanitizerTests : IDisposable

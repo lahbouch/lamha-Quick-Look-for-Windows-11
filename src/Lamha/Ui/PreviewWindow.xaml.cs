@@ -9,6 +9,7 @@ using System.Windows.Interop;
 using System.Windows.Threading;
 using Lamha.Core;
 using Lamha.Explorer;
+using Lamha.Office;
 using Lamha.Pdf;
 using Lamha.Previews;
 using static Lamha.Explorer.Native;
@@ -22,17 +23,20 @@ public partial class PreviewWindow : Window
     readonly PreviewRegistry _registry;
     readonly AppSettings _settings;
     readonly Action<string> _notify;
+    readonly OfficeConverter _converter;
+    bool _merging;
     PreviewSession? _session;
     IPreview? _preview;
     CancellationTokenSource? _load;
     nint _owner;
     bool _reallyClosing, _fullscreen;
 
-    public PreviewWindow(PreviewRegistry registry, AppSettings settings, Action<string> notify)
+    public PreviewWindow(PreviewRegistry registry, AppSettings settings, Action<string> notify, OfficeConverter converter)
     {
         _registry = registry;
         _settings = settings;
         _notify = notify;
+        _converter = converter;
         InitializeComponent();
         var hwnd = new WindowInteropHelper(this).EnsureHandle();
         int round = 2; // DWMWCP_ROUND: the standard Windows 11 corners and shadow, without a transparent window
@@ -43,11 +47,43 @@ public partial class PreviewWindow : Window
 
     internal void Notify(string message) => _notify(message);
 
+    List<string> Mergeable() =>
+        _session?.Files.Where(f => FileTypes.Detect(f) is FileKind.Pdf or FileKind.Word).ToList() ?? [];
+
+    void OnMerge(object sender, RoutedEventArgs e) => MergeSelection();
+
+    /// <summary>Joins the selected PDF and Word files, in selection order, into one PDF beside the first. Nothing is overwritten.</summary>
+    internal async void MergeSelection()
+    {
+        var files = Mergeable();
+        if (files.Count < 2 || _merging) return;
+        _merging = true;
+        _notify("جارٍ دمج الملفات…");
+        try
+        {
+            var pdfs = new List<string>();
+            foreach (var f in files)
+                pdfs.Add(FileTypes.Detect(f) == FileKind.Pdf ? f : await _converter.ConvertAsync(f, CancellationToken.None));
+            var output = PageFiles.MergedPathFor(files[0]);
+            await Task.Run(() => PdfDoc.Merge(pdfs, output));
+            Log.Info($"files merged: {files.Count}");
+            _notify($"تم دمج الملفات ({files.Count}) في «{Path.GetFileName(output)}».");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or PdfCorruptException or PdfPasswordException
+                                       or PdfLockedException or OfficeConversionException or OfficeEngineMissingException)
+        {
+            Log.Error("merge failed", e);
+            _notify("تعذر الدمج: " + PreviewErrors.Message(e));
+        }
+        finally { _merging = false; }
+    }
+
     public void ShowSession(PreviewSession session, nint owner)
     {
         _session = session;
         _owner = owner;
         Nav.Visibility = session.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        MergeButton.Visibility = Mergeable().Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         PlaceWindow(null, keepAspect: false);
         Show();
         Activate();
@@ -195,6 +231,7 @@ public partial class PreviewWindow : Window
     {
         _session = session;
         Nav.Visibility = session.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        MergeButton.Visibility = Mergeable().Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         Load();
     }
 
@@ -227,6 +264,7 @@ public partial class PreviewWindow : Window
             case Key.Enter: OpenOriginal(); break;
             case Key.C when ctrl: CopyCurrent(); break;
             case Key.F when ctrl: _preview?.FocusSearch(); break;
+            case Key.M when ctrl: MergeSelection(); break;
             case Key.F: OpenFolder(); break;
             case Key.F1: ToggleHelp(); break;
             case Key.OemPeriod or Key.Decimal: ToggleFullscreen(); break;

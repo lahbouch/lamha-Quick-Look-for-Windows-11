@@ -11,6 +11,8 @@ public static class PreviewErrors
         UnauthorizedAccessException => "لا تملك صلاحية الوصول إلى هذا الملف.",
         OfficeEngineMissingException => "محرك عرض مستندات Office غير موجود. أعد تثبيت لمحة لإصلاح ذلك.",
         OfficeConversionException => "تعذر تحويل هذا المستند. ربما يكون تالفًا أو محميًا بكلمة مرور.",
+        PdfPasswordException => "أحد الملفات محمي بكلمة مرور.",
+        PdfLockedException => "يمنع مؤلف أحد الملفات استخراج صفحاته.",
         PdfCorruptException => "هذا الملف تالف أو ليس بتنسيق PDF صالح.",
         IOException => "تعذرت قراءة الملف. ربما يستخدمه برنامج آخر.",
         _ => "تعذر عرض هذا الملف. ربما يكون تالفًا.",

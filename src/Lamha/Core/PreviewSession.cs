@@ -13,6 +13,7 @@ public sealed class PreviewSession
     }
 
     public int Count => _files.Count;
+    public IReadOnlyList<string> Files => _files;
     public int Index { get; private set; }
     public string? Current => Index < _files.Count ? _files[Index] : null;
     public string Position => $"{Index + 1} / {Count}";

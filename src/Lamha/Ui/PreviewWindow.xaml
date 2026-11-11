@@ -47,6 +47,7 @@
                     <Button x:Name="PrevButton" Style="{StaticResource ToolButton}" Content="&#xE76C;" ToolTip="الملف السابق" Click="OnPrevious" />
                     <TextBlock x:Name="Position" VerticalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{StaticResource Accent}" FlowDirection="LeftToRight" Margin="4,0" />
                     <Button x:Name="NextButton" Style="{StaticResource ToolButton}" Content="&#xE76B;" ToolTip="الملف التالي" Click="OnNext" />
+                    <Button x:Name="MergeButton" Style="{StaticResource ToolButton}" Content="&#xE8C8;" ToolTip="دمج الملفات المحددة في ملف PDF واحد (Ctrl+M)" AutomationProperties.Name="دمج الملفات المحددة" Click="OnMerge" Visibility="Collapsed" />
                 </StackPanel>
                 <Button Style="{StaticResource ToolButton}" Content="&#xE897;" ToolTip="اختصارات لوحة المفاتيح (F1)" AutomationProperties.Name="اختصارات لوحة المفاتيح" Click="OnHelp" />
                 <Button Style="{StaticResource ToolButton}" Content="&#xE838;" ToolTip="فتح المجلد (F)" AutomationProperties.Name="فتح المجلد" Click="OnOpenFolder" />
@@ -105,6 +106,7 @@
                         <Run Text="Ctrl+F: بحث، F3: النتيجة التالية" /><LineBreak />
                         <Run Text="T: المصغرات، Ctrl+P: طباعة" /><LineBreak />
                         <Run Text="E: تقسيم الصفحات أو استخراجها (PDF وWord)" /><LineBreak />
+                        <Run Text="Ctrl+M: دمج الملفات المحددة في ملف PDF واحد" /><LineBreak />
                         <Run Text="W: التفاف الأسطر" /><LineBreak />
                         <Run Text="P: تشغيل أو إيقاف، J أو L: تقديم أو إرجاع 5 ثوانٍ" /><LineBreak />
                         <Run Text="السهمان لأعلى ولأسفل: مستوى الصوت، M: كتم الصوت" />
